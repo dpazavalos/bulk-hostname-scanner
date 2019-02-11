@@ -25,6 +25,7 @@ run once silently and return the tuples. Use for module integration \n
 hostnames_in can be set either in __init__ or main(), however passing through main keeps those
 attributes changed.
 """
+# todo move to readme.md
 
 from socket import getfqdn as sock_getfqdn, gethostbyname as sock_ghbn, gaierror as sock_gaierror
 from webbrowser import open as wb_open
@@ -34,6 +35,7 @@ from os import remove as os_remove
 from typing import List, Tuple, Optional
 from sys import argv as sys_argv
 import _reference_data
+# todo relocate imports and documentaion to adjacent documentation file
 
 
 class HostnameToIP:
@@ -46,6 +48,8 @@ NOTE: Long server lists without TLDs WILL take time\n
 
     def __init__(self, hostnames_in: List[str] = None, split_size=30, report_joiner=',',
                  text_out=True, return_list=False, show_status=True):
+
+        # todo reduce separate items into sub data objects
 
         # Bind References to custom data types
         self.ips = _reference_data.IPReports.new()
@@ -121,9 +125,6 @@ NOTE: Long server lists without TLDs WILL take time\n
             for arg in sys_argv:
                 self.hostnames_in.append(arg)
 
-        settest: set = [1, 2, 3]
-        set()
-
 
     @staticmethod
     def splash() -> str:
@@ -191,6 +192,7 @@ NOTE: Long server lists without TLDs WILL take time\n
                 pass
 
     def gather(self) -> None:
+        # todo extract gather into custom data type
         """Gathers server names from user, split by newline\n
         Runs until blank line submitted
         Defauts to pass if self.hostnames_in is set"""
