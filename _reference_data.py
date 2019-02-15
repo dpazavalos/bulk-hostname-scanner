@@ -1,27 +1,24 @@
 """Storage for dataclass IPReport object/factory, and immutable Reference object"""
 
-from dataclasses import dataclass
-from typing import List
 
-
-@dataclass
 class _IpReportDatatype:
     """Generic Storage object for valids, invalids, and valids_split values, to be gen
     and returned by factory IPReports"""
-    valids: List[str]
+
+    valids: list
     """IPs of valid Hostnames"""
 
-    invalids: List[str]
+    invalids: list
     """Hostnames with no IP found"""
 
-    valids_split: List[List[str]]
+    valids_split: list
     """IPs of valid Hostnames, split into sublists by self.split_size"""
 
     def reset(self):
         """Resets all lists to empty"""
-        for data in self.__dict__:
-            if isinstance(self.__dict__[data], list):
-                self.__dict__[data] = []
+        self.valids.clear()
+        self.invalids.clear()
+        self.valids_split.clear()
 
 
 class IPReports:    # pylint: disable=too-few-public-methods
@@ -29,23 +26,50 @@ class IPReports:    # pylint: disable=too-few-public-methods
     @staticmethod
     def new() -> _IpReportDatatype:
         """Returns a new inst IPReport instance"""
-        return _IpReportDatatype(valids=[], invalids=[], valids_split=[])
+        return _IpReportDatatype()
 
 
-@dataclass
 class References:
     """Immutable reference data; contact info, known TLDs, known exclusions"""
 
-    contacts = 'daniel.avalos@protonmail.com, otherperson@internal.com'
-    """Contact emails, to display at the top of the txt report"""
+    def __init__(self, freeze_post_init=True):
 
-    tlds = ('', '.com', '.org', '.net', '.gov')
-    """Common TLDs. Iterate against each to identify full DNS name"""
-    # Substitute internal TLDs once known
+        self._frozen = False
+        # Enable all class attributes. By default, _freeze enables and locks @end of init
 
-    known_exclusions = ('', 'dnshostname', 'netbios', 'servers', 'server',
-                        'ipaddress', 'ipaddress', 'hostname')
-    """known_exclusions: Common report headers; omit these entries\n
-    (allows full col copy from reports)"""
+        self.contacts = 'daniel.avalos@protonmail.com, otherperson@internal.com'
+        """Contact emails, to display at the top of the txt report"""
 
-    rep_file = 'IpBlocks.txt'
+        self.tlds = ('', '.com', '.org', '.net', '.gov')
+        """Common TLDs. Iterate against each to identify full DNS name"""
+        # Substitute internal TLDs once known
+
+        self.known_exclusions = ('',
+                                 'dnshostname', 'netbios', 'servers', 'server',
+                                 'ipaddress', 'ipaddress', 'hostname')
+        """known_exclusions: Common report headers; omit these entries\n
+        (allows full col copy from reports)"""
+
+        self.rep_file = 'IpBlocks.txt'
+
+        if freeze_post_init:
+            self._frozen = True
+
+    def freeze_now(self):
+        self._frozen = True
+
+    def unfreeze(self):
+        self._frozen = False
+
+    def __setattr__(self, item, value):
+        """Pre 3.7 emulation of frozen dataclasses. Soft mutation prevention"""
+        if self._frozen:
+            raise SyntaxError("Consider Constants obj immutable, do not modify!")
+        self.__dict__[item] = value
+
+    def __delattr__(self, item):
+            """Pre 3.7 emulation of frozen dataclasses. Soft mutation prevention"""
+            if self._frozen:
+                raise SyntaxError("Consider Constants obj immutable, do not modify!")
+            del self.__dict__[item]
+
