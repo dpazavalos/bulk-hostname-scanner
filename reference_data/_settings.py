@@ -1,9 +1,9 @@
 """Data obj and factory for bulk_hostname_resolver running attributes"""
 
-from ._z_documentation import SettingsDoc
+from ._z_frozen_obj import FrozenObj
 
 
-class _Settings(SettingsDoc):
+class _Settings(FrozenObj):
     """Immutable reference data; settings passed from run(). Freezes on set_settings"""
 
     def __init__(self, ):

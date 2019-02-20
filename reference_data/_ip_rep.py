@@ -1,8 +1,7 @@
-from ._z_documentation import IpReportDoc
 from typing import List
 
 
-class _IpReport(IpReportDoc):
+class _IpReport:
 
     def __init__(self):
 

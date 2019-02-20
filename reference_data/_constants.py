@@ -1,10 +1,10 @@
-from ._z_documentation import ConstantsDoc
 from re import search as reg_search
 from socket import getfqdn as sock_getfqdn
-from typing import List, Tuple
+from typing import Tuple
+from ._z_frozen_obj import FrozenObj
 
 
-class _Constants(ConstantsDoc):
+class _Constants(FrozenObj):
     """Immutable reference data; contact info, known TLDs, known exclusions"""
 
     def __init__(self, ):
