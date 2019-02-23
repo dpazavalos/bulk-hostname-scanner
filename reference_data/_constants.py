@@ -12,7 +12,7 @@ class _Constants(FrozenObj):
         self.contacts = 'daniel.avalos@protonmail.com, otherperson@internal.com'
         """Contact emails, to display at the top of the txt report"""
 
-        self.tlds: Tuple[str] = ('', '.com', '.org', '.net', '.gov')
+        self.tlds: Tuple[str] = ('', '.com', '.org', '.net', '.gov', '.local')
         """Common TLDs. Iterate against each to identify full DNS name"""
         # Substitute internal TLDs once known
 

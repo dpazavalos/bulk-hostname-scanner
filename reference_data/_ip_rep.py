@@ -1,7 +1,8 @@
-from typing import List
+from typing import List, Tuple
+from collections import namedtuple
 
 
-class _IpReport:
+class IpReport:
 
     def __init__(self):
 
@@ -17,22 +18,38 @@ class _IpReport:
         self.hostnames_in: List[str] = []
         """List of given hostnames to resolve"""
 
-        self.reset()
+        self.socket_answers: List[namedtuple] = []
+        """Answers to extended socket calls. Used for persistence against cumulative runs\n
+        given: Given hostname used to get socket answer\n
+        fqdn: given hostname and tld used successfully\n
+        ip: Found IP from fqdn"""
+
+        self.sock_ans = namedtuple('sock_ans',
+                                   'given fqdn ip')
+        """Schematic for socket_answer named tuples. Build this and add to socket_answers\n
+        given: Given hostname used to get socket answer\n
+        fqdn: given hostname and tld used successfully\n
+        ip: Found IP from fqdn"""
 
     def reset(self):
-        """Reset all storage arrays"""
+        """Resets non persistent storage arrays"""
         self.valids.clear()
         self.invalids.clear()
         self.valids_split.clear()
         self.hostnames_in.clear()
 
+    def reset_all(self):
+        """Resets ALL storage arrays. Clean slate"""
+        self.reset()
+        self.socket_answers.clear()
+
     
 class _IpReportFactory:
-    """Factory method to create new _IpReport object"""
+    """Factory method to create new IpReport object"""
 
     @staticmethod
     def _return_ip_report_obj():
-        new_obj = _IpReport()
+        new_obj = IpReport()
         return new_obj
 
     def new_ip_report_obj(self, ):

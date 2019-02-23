@@ -22,19 +22,21 @@ Can be used in conjunction with text_out to prompt user to reset or add to list
 Additionally, HostnameToIP(hostnames_in=None) can be given a list to automatically scan out for.\n
 Note: doing so sets text_out=False, return_list=True, and show_status=False, meaning the script will
 run once silently and return the tuples. Use for module integration \n
-hostnames_in can be set either in __init__ or main(), however passing through main keeps those
+hostnames_in can be set either in __init__ or run(), however passing through run keeps those
 attributes changed.
 """
 # todo move to readme.md
 
-from socket import getfqdn as sock_getfqdn, gethostbyname as sock_ghbn, gaierror as sock_gaierror
+from socket import gethostbyname as sock_ghbn, gaierror as sock_gaierror, \
+    herror as sock_herror
 from webbrowser import open as wb_open
 from textwrap import dedent
-from re import search as reg_search
 from os import remove as os_remove
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Type
 from sys import argv as sys_argv
-import _reference_data
+import reference_data as ref
+
+
 # todo relocate imports and documentaion to adjacent documentation file
 
 
@@ -46,268 +48,346 @@ NOTE: Long server lists without TLDs WILL take time\n
 
 (If a list of hostnames to check already exists, provide as attribute hostnames_in)"""
 
-    def __init__(self, hostnames_in: List[str] = None, split_size=30, report_joiner=',',
-                 text_out=True, return_list=False, show_status=True):
+    def __init__(self, ):
 
-        # todo reduce separate items into sub data objects
-
-        # Bind References to custom data types
-        self.ips = _reference_data.IPReports.new()
-        """Storage for valids, invalids, and valids_split values"""
-        self.ref = _reference_data.References
+        self._sett = ref.build.new_settings_object()
+        """Running settings object"""
+        self._const = ref.build.new_const_object()
         """Immutable reference data; contact info, known TLDs, known exclusions"""
+        self._ips: ref.IpReport = ref.build.new_ip_report_obj()
+        """Storage for valids, invalids, and valids_split values"""
 
-        # text_out reporting attributes
-        self.split_size: int = split_size
-        """# to split list of valids into, for potential scan limits"""
-        self.report_joiner: str = report_joiner
-        """String character used to separate valids return IPs into"""
+        self._repeating: bool = True
+        """Used to keep run loop running, typically in conjunction with text_out"""
 
-        # Module running attributes
-        self.repeating: bool = True
-        """Used to keep main loop repeating, typically in conjunction with text_out"""
-        self.text_out: bool = text_out
-        """Bool to display results in a txt file or not
-        Also used by prompt to run again (since running again is only used with text_out"""
-        self.return_list: bool = return_list
-        """Bool to return final results in a nested list\n
-        [0] valids (one list, no chunks), [1] invalids"""
-        self.show_status = show_status
-        """Enables stdout print"""
+    def _vprint(self, *to_print):
+        """
+        Default check against _sett.verbosity to see if allowed to print
 
-        self.hostnames_in: List[str] = []
-        """List of given hostnames to resolve"""
-        self.check_if_hostnames_given(hostnames_in)
-
-        self.local_tld: str = ''
-        """localhost's tld, if has one\n
-        When not given, DNS will assume similar .domain.TLD . Helpful for figuring IPs,
-        but stdout will then only show hostname\n
-        Use to check if TLD was assumed, and append to stdout"""
-        try:
-            self.local_tld += reg_search(r"\..*", sock_getfqdn())[0]
-        except TypeError:
-            # if local hostname has no
-            pass
-
-    def stat_print(self, *to_print):
-        """Default check against self.show_status to see if allowed to print"""
-        if self.show_status:
+        Args:
+            *to_print: emulation of print *args. pass as normal
+        """
+        if self._sett.verbose:
             for arg in to_print:
                 print(arg, end=' ')
             print()
 
-    def clear_ips(self):
-        self.ips.reset()
+    def _clear_ips(self) -> None:
+        """Call IPS_report clear function"""
+        self._ips.reset()
 
-    def silent_running(self, text_out=False, return_list=False, show_status=False):
-        self.text_out = text_out
-        self.return_list = return_list
-        self.show_status = show_status
-
-    def check_if_hostnames_given(self, hn_in) -> None:
-        """Checks if a list of hostnames was given to the module\n
-        Hostnames can be passed either on init or when calling main"""
-        # Check if init with hostnames
-        if self.hostnames_in:
-            pass
-
-        # Check if main with hostnames
-        elif hn_in:
-            self.silent_running()
-            for hostname in hn_in:
-                self.hostnames_in.append(hostname)
-
-        # check if called from command line and if sys.argv has hostnames as arg, or a simple file
-        # containing hostnames
-        elif len(sys_argv) > 1:
-            self.silent_running()
-            for arg in sys_argv:
-                self.hostnames_in.append(arg)
-
+    def _silent_running(self, file_out=False, return_list=True, verbose=True):
+        """ todo this will cause issues against frozen
+        Override triggers for cli only function. Used to
+        """
+        self._sett.file_out = file_out
+        self._sett.return_list = return_list
+        self._sett.verbose = verbose
 
     @staticmethod
-    def splash() -> str:
-        """Welcome screen"""
+    def _hn_in_breakdown(targ) -> List[str]:
+        """Check hn_in entries for if passed list, possible file, or single string.
+        Break down into array and return
+
+        Args:
+            targ: hn_in item
+
+        Return:
+            Array, from singular item to full breakdown"""
+        arr = []
+        if isinstance(targ, list):
+            arr += [x for x in targ]
+        else:
+            try:
+                with open(targ) as fi:
+                    for line in fi:
+                        try:
+                            line = str(line)
+                            arr.append(line.strip())
+                        except ValueError:
+                            pass
+            except FileNotFoundError:
+                arr.append(targ)
+        return arr
+
+    def _hostnames_given(self, hn_in: List[str]) -> bool:
+        """Checks if a list of hostnames was given to the module\n
+        Hostnames can be passed when calling run
+
+        Args:
+            hn_in: an optional hostnames in argument from run()
+
+        Return:
+            TF bool, indicating if a list of hostnames was given"""
+
+        # Check if run with hostnames
+        if hn_in:
+            # for hostname in hn_in:
+            self._ips.hostnames_in += self._hn_in_breakdown(hn_in)
+            return True
+
+        # if sys.argv, check if has hostnames as arg, or a simple file containing hostnames
+        elif len(sys_argv) > 1:
+            for ndx in range(1, len(sys_argv)):
+                self._ips.hostnames_in += self._hn_in_breakdown(sys_argv[ndx])
+            return True
+
+        return False
+
+    @staticmethod
+    def _splash() -> str:
+        """"""
 
         return dedent("""
-        
-        
             * * AdHoc Server Name Resolver * *
 
         Identifies IPs for a list of given servers, based on internal TLDs
 
         Enter manually or copy/paste a column of server names separated by new lines
         Text file will open with lines of IPs for servers, no more than 30 IPs per line
-        Note: while full domains are optional, a large list without them WILL take time""")
+        Note: while full domains are optional, a large list without them WILL take time
+        
+        """)
 
-    def splash_screen(self) -> None:
+    def _splash_screen(self) -> None:
         """Print welcome screen"""
-        self.stat_print(self.splash())
+        self._vprint(self._splash())
 
-    @staticmethod
-    def report_header(title: str) -> str:
-        return '\n\n' + title.center(44, '=') + '\n\n'
-
-    def report_invalids(self, invalids_remaining: List[str]) -> str:
-        """given a list of invalid results, prepares for reporting function\n
-        (Can be given a blank list, to indicate no invalid results)"""
-
-        rep: str = ''
-
-        rep += self.report_header("Contacts")
-        rep += self.ref.contacts
-
-        # Build rep if any unidentified servers
-        if invalids_remaining:
-            rep += self.report_header('Servers with no found IP')
-            rep += '\n'.join(i for i in invalids_remaining)
-        else:
-            rep += self.report_header('IPs found for all Servers')
-
-        return rep
-
-    @staticmethod
-    def dns_assumed(hostname: str, tld: str) -> bool:
-        """Determines if DNS assumed the domain.TLD. on an unqualified hostname"""
-        return ('.' not in hostname) and (not tld)
-
-    def ghbn(self, hostname: str) -> Tuple[str, str]:
-        """Iterative socket.gethostbyname on given hostname + each self.tlds\n
-        Returns hostname's IP and tld used\n
-        If unable to resolve, returns none"""
-
-        for top in self.ref.tlds:
-            try:
-                ip_gathered, tld_used = sock_ghbn(hostname + top), top
-                if self.dns_assumed(hostname, tld_used):
-                    # If hostname was provided without TLD but TLD matches running machine's TLD,
-                    # then gethostbyname runs successfully without notice.
-                    # Catch this and use local_tld
-                    tld_used = self.local_tld
-
-                return ip_gathered, tld_used
-
-            except (sock_gaierror, UnicodeError):
-                pass
-
-    def gather(self) -> None:
-        # todo extract gather into custom data type
+    def _gather(self) -> None:
         """Gathers server names from user, split by newline\n
         Runs until blank line submitted
         Defauts to pass if self.hostnames_in is set"""
-        if not self.hostnames_in:
+        if not self._ips.hostnames_in:
             prompt: str = None
-            self.stat_print("\nEnter servers (Leave blank to start scan)\n")
+            self._vprint("\nEnter servers (Leave blank to start scan)\n")
+            prev_gathered = [ans.given for ans in self._ips.socket_answers]
             while prompt != '':
                 prompt = input('> ').lower().strip()
-                if prompt and (prompt not in self.hostnames_in) and \
-                        (prompt not in self.ref.known_exclusions):
-                    self.hostnames_in.append(prompt)
+                if prompt and prompt not in self._ips.hostnames_in and \
+                        prompt not in prev_gathered and \
+                        prompt not in self._const.known_exclusions:
+                    self._ips.hostnames_in.append(prompt)
 
     @staticmethod
-    def tprint(zero: any = '', one: any = '', two: any = '') -> str:
-        """returns three values in standardized table format, used to stdout results"""
-        return ' '.join((str(zero).rjust(7), str(one).ljust(17), str(two).ljust(27)))
+    def _dns_assumed(hostname: str, tld: str) -> bool:
+        """Determines if DNS assumed the domain.TLD. on an unqualified hostname"""
+        return ('.' not in hostname) and (not tld)
 
-    def split_list(self, target: list) -> List[List[str]]:
+    def _socketer(self, hostname: str) -> Tuple[str, str]:
+        """Extention to socket.gethostbyaddr, includes iterative check against known tld's
+        Returns given hostname's FQDN and IP\n
+        If unable to resolve, returns none"""
+
+        for top in self._const.tlds:
+            name = hostname + top
+            try:
+                ip = sock_ghbn(name)
+                if self._dns_assumed(hostname, top):
+                    name += self._const.local_tld
+                return name, ip
+            except (sock_gaierror, sock_herror, UnicodeError):
+                pass
+        # Looks like IP was never found. Raise ValueError
+        raise ValueError("Socketer unable to resolve given!")
+
+    @staticmethod
+    def _tmat(*to_display: any) -> str:
+        """returns values in standardized table format, used to stdout results"""
+        # Make sure all to display items are unpacked
+        disp_arr = []
+        for item in to_display:
+            if isinstance(item, list):
+                disp_arr += [str(i) for i in item]
+            else:
+                disp_arr.append(str(item))
+
+        gap_start = 7
+        gapper = gap_start
+        tbl = ''
+        for item in disp_arr:
+            if gapper == gap_start:
+                tbl += item.rjust(gapper)
+            else:
+                tbl += item.ljust(gapper)
+            tbl += ' '
+            gapper += 10
+
+        return tbl
+
+    def _split_list(self, target: list) -> List[List[str]]:
         """Splits given list into nested lists based on self.chunk_size as range step"""
         out: List[list] = []
-        for i in range(0, len(target), self.split_size):
-            out.append(target[i:i + self.split_size])
+        for i in range(0, len(target), self._sett.split_size):
+            out.append(target[i:i + self._sett.split_size])
         return out
 
-    def sort(self) -> None:
-        """Sorts hostnames from self.hostnames_in to valid and invalid lists based on ghbn results\n
+    def _sort(self) -> None:
+        """
+        Sorts hostnames from hostnames_in to valid and invalid lists based on _socketer results\n
         """
 
         # stdout Header
-        self.stat_print('\n\t*', len(self.hostnames_in), 'unique servers identified *\n')
-        self.stat_print(self.tprint('#', 'IP', 'Server Name'))
+        count = len(self._ips.hostnames_in + self._ips.socket_answers)
+        self._vprint('\n\t*', count, 'unique servers identified *\n')
+        self._vprint(self._tmat('#', 'Given', 'FQDN', "IP"))
 
-        line_count = 0
+        num = 1
+        """Line counter, for all stdout items"""
 
-        # Get host by name, sorts, and tabling
-        # stdout used for Progress only.
-        # Valids and Invalids ultimately write to AdHoc_IpBlocks.txt or are returned
-        for srv in self.hostnames_in:
-            line_count += 1
-            ip_gathered = self.ghbn(srv)
-            if ip_gathered:
-                self.stat_print(self.tprint(line_count, ip_gathered[0], srv + ip_gathered[1]))
-                self.ips.valids.append(ip_gathered[0])
-            else:
-                # All TLDs tried, none valid. Return given hostname name only
-                self.stat_print(self.tprint(line_count, 'N / A', srv))
-                self.ips.invalids.append(srv)
+        # To allow 'adding' hostnames to final report, reference_data stores givens and
+        for prev in self._ips.socket_answers:
+            self._ips.valids.append(prev.ip)
+            self._vprint(self._tmat(num, [p for p in prev]))
+            num += 1
 
-        self.ips.valids_split = self.split_list(self.ips.valids)
+        # enumerate through hostnames_in. Gather name and IP. Stdout results, if sett.verbose=True
+        not_found = 'N / A'  # To display, if unable to resolve
+        for given in self._ips.hostnames_in:
+            fqdn, ip = not_found, not_found
+            try:
+                fqdn, ip = self._socketer(given)
+                self._ips.valids.append(ip)
+            except ValueError:
+                self._ips.invalids.append(given)
+            finally:
+                self._vprint(self._tmat(num, given, fqdn, ip))
+                self._ips.socket_answers.append(self._ips.sock_ans(given, fqdn, ip))
+                num += 1
 
-    def report_to_txt(self) -> None:
+        self._ips.valids_split = self._split_list(self._ips.valids)
+
+    # # # Reporter functions
+
+    @staticmethod
+    def _report_divider(title: str) -> str:
+        """Header lines used to visually break up report items. Std creator"""
+        return '\n\n' + title.center(44, '=') + '\n\n'
+
+    def _report_inval(self, invalids_remaining: List[str]) -> str:
+        """Generate an Invalids Report, given a list of invalid results.
+        Can be given a blank list, to indicate no invalid results"""
+
+        rep: str = ''
+
+        rep += self._report_divider("Contacts")
+        rep += self._const.contacts
+
+        # Build rep if any unidentified servers
+        if invalids_remaining:
+            rep += self._report_divider('Servers with no found IP')
+            rep += '\n'.join(i for i in invalids_remaining)
+        else:
+            rep += self._report_divider('IPs found for all Servers')
+
+        return rep
+
+    def _report(self) -> None:
         """Cultivates text report from self.valids and self.invalids"""
 
         # Write valid IPs to rep_file
-        with open(self.ref.rep_file, 'w') as report:
-            report.write('\n\n'.join(
-                [self.report_joiner.join(valid) for valid in self.ips.valids_split]))
+        # form valids split chunks into sett.report_joiner joined lines ( 10.10.10.2,10.10.10.3 )
+        valids_formed = [self._sett.report_joiner.join(valid) for valid in self._ips.valids_split]
+        with open(self._const.rep_file, 'w') as report:
+            report.write('\n\n'.join(valids_formed))
 
-        # Any remaining servers (invalid names)
-        with open(self.ref.rep_file, 'a') as report:
-            report.write(self.report_invalids(self.ips.invalids))
+        # Any non resolved servers
+        with open(self._const.rep_file, 'a') as report:
+            report.write(self._report_inval(self._ips.invalids))
 
-        # use default text editor to open file
-        # Note that wb_open calls web browser to open the file with default opener
-        # While this works, can take a moment to open. The check_again
-        wb_open(self.ref.rep_file)
+        # use webbrowser.open to call default text editor (no OS reliance)
+        wb_open(self._const.rep_file)
 
-    def check_run_again(self, prompt: str = '') -> None:
-        """Sets self.repeating T/F flag, optional open Scan Portal"""
-        # Need to increase options? consider python module pycolims to manage single stage menu-ing
+    # # # Primary engine functions
 
-        self.stat_print('\n(0) Quit '
-                        '\n(1) Run a new list '
-                        '\n(2) Add to list')
+    def _menu_prompt(self) -> None:
+        """Sets self.repeating T/F flag"""
 
-        prompts = '0 1 2'.split()
-        while prompt not in prompts:
-            prompt = input('> ')
+        prompts = '0 1 2 3'.split()
+        menu = '\n(0) Quit '\
+               '\n(1) Run a new list '\
+               '\n(2) Add to list'\
+               '\n(3) Generate Report'
 
-        # Exit main loop
-        if prompt == '0':
-            self.repeating = False
-            os_remove(self.ref.rep_file)
+        menuing = True
+        while menuing:
+            menuing = False
 
-        # Clear list
-        elif prompt == '1':
-            self.clear_ips()
-            self.repeating = True
+            self._vprint(menu)
+            prompt = None
+            while prompt not in prompts:
+                prompt = input('> ')
 
-        # todo ensure properly extends. Sublist to add to main?
-        elif prompt == '2':
-            self.repeating = True
+                # Exit run loop
+                if prompt == '0':
+                    self._repeating = False
+                    os_remove(self._const.rep_file)  # todo replace with temp file
 
-    def main(self, hostnames_in: List[str] = None) -> Optional[Tuple[List[List[str]], List[str]]]:
-        """Display splash screen, gather IPs (hostnames_in= or stdin), opt report, return list"""
+                # Clear list
+                elif prompt == '1':
+                    self._ips.reset_all()
+                    # self._repeating = True
 
-        # todo expand check (main arg, init, sys.argv)
-        self.check_if_hostnames_given(hostnames_in)
+                elif prompt == '2':
+                    self._ips.reset()
+                    # self._repeating = True
 
-        if self.text_out:
-            self.splash_screen()
-            while self.repeating:
-                self.gather()
-                self.sort()
-                self.report_to_txt()
-                self.check_run_again()
+                elif prompt == '3':
+                    menuing = True
+                    self._report()
+
+    def run(self,
+            hostnames_in: List[str] = None,
+            split_size=30,
+            report_joiner=',',
+            file_out=False,
+            return_list=False,
+            verbose=True, ) -> Optional[Tuple[List[List[str]], List[str]]]:
+        """Display _splash screen, _gather IPs (hostnames_in= or stdin), opt report, return list"""
+
+        auto_pilot = False
+        """Variant of verbosity. Used when given hostnames in sys.argv or run()"""
+        if self._hostnames_given(hostnames_in):
+            pass
+            # silent running. A list given through run or sys.argv overrides verbosity
+            # auto_pilot = True
+        else:
+            self._splash_screen()
+
+        # Set running settings
+        self._sett.set_settings(split_size=split_size,
+                                report_joiner=report_joiner,
+                                file_out=file_out,
+                                return_list=return_list,
+                                verbose=verbose)
+
+        # if auto_pilot:
+            # self._gather()
+            # self._sort()
+            # return self._ips.valids_split, self._ips.invalids
+        # self._splash_screen()
+        while self._repeating:
+            self._gather()
+            self._sort()
+            self._menu_prompt()
+        if self._sett.return_list:
+            return self._ips.valids_split, self._ips.invalids
+
+        '''if self._sett.verbose:
+            self._splash_screen()
+            while self._repeating:
+                self._gather()
+                self._sort()
+                # self._report()
+                self._menu_prompt()
 
         else:
-            self.gather()
-            self.sort()
+            self._gather()
+            self._sort()
 
-        if self.return_list:
-            return self.ips.valids_split, self.ips.invalids
+        if self._sett.return_list:
+            return self._ips.valids_split, self._ips.invalids'''
 
 
 if __name__ == '__main__':
     HN2IP = HostnameToIP()
-    HN2IP.main()
+    HN2IP.run()

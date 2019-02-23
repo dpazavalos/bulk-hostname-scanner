@@ -2,7 +2,7 @@
 Side loaded factory template, used to store and create unique memory ID objects
 """
 
-from ._ip_rep import _IpReportFactory
+from ._ip_rep import _IpReportFactory, IpReport
 from ._constants import _ConstFactory
 from ._settings import _SettingsFactory
 
