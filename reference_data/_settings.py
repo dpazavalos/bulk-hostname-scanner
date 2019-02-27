@@ -24,8 +24,8 @@ class _Settings(FrozenObj):
     def set_settings(self,
                      split_size=30,
                      report_joiner=',',
-                     file_out=True,
-                     return_list=False,
+                     # file_out=True,
+                     # return_list=False,
                      verbose=True,
                      ):
         self.unfreeze_now()
@@ -34,8 +34,8 @@ class _Settings(FrozenObj):
         self.split_size: int = split_size
         self.report_joiner: str = report_joiner
         # Module running attributes
-        self.file_out: bool = file_out
-        self.return_list: bool = return_list
+        # self.file_out: bool = file_out
+        # self.return_list: bool = return_list
         self.verbose = verbose
 
         self.freeze_now()

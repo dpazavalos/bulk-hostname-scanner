@@ -10,15 +10,6 @@ This module was originally written for use internally in large corporate domains
 encounter a list of server names without their internal TLDs, and need to figure the IP addresses
 for a scan. Once hostname IPs are found, results are either \n \n
 
-a) text_out= (Default True) \n
-displayed in a temporary txt file (along with contact emails for easy copy/paste) divided up into
-lines split_size=30 long and joined with report_joiner=',' with invalid hostnames displayed at tail.
-Additionally, text_out=True enables the prompt again feature, allowing user to re-run with new input
- \n
-b) return_list= (Default False) \n
-returnes the final gathered list in a tuple (List[split_size=30 sized lists], invalid_hostnames)
-Can be used in conjunction with text_out to prompt user to reset or add to list
-
 Additionally, HostnameToIP(hostnames_in=None) can be given a list to automatically scan out for.\n
 Note: doing so sets text_out=False, return_list=True, and show_status=False, meaning the script will
 run once silently and return the tuples. Use for module integration \n
@@ -26,6 +17,7 @@ hostnames_in can be set either in __init__ or run(), however passing through run
 attributes changed.
 """
 # todo move to readme.md
+# todo reduce options. Change verbosity to single silent running, default False
 
 from socket import gethostbyname as sock_ghbn, gaierror as sock_gaierror, \
     herror as sock_herror
@@ -60,7 +52,7 @@ NOTE: Long server lists without TLDs WILL take time\n
         self._repeating: bool = True
         """Used to keep run loop running, typically in conjunction with text_out"""
 
-    def _vprint(self, *to_print):
+    def _verprint(self, *to_print):
         """
         Default check against _sett.verbosity to see if allowed to print
 
@@ -76,17 +68,9 @@ NOTE: Long server lists without TLDs WILL take time\n
         """Call IPS_report clear function"""
         self._ips.reset()
 
-    def _silent_running(self, file_out=False, return_list=True, verbose=True):
-        """ todo this will cause issues against frozen
-        Override triggers for cli only function. Used to
-        """
-        self._sett.file_out = file_out
-        self._sett.return_list = return_list
-        self._sett.verbose = verbose
-
     @staticmethod
     def _hn_in_breakdown(targ) -> List[str]:
-        """Check hn_in entries for if passed list, possible file, or single string.
+        """Check hn_in entries for if possible file, passed list, or single string.
         Break down into array and return
 
         Args:
@@ -110,7 +94,7 @@ NOTE: Long server lists without TLDs WILL take time\n
                 arr.append(targ)
         return arr
 
-    def _hostnames_given(self, hn_in: List[str]) -> bool:
+    def _process_hostnames_given(self, hn_in: List[str]) -> bool:
         """Checks if a list of hostnames was given to the module\n
         Hostnames can be passed when calling run
 
@@ -120,13 +104,13 @@ NOTE: Long server lists without TLDs WILL take time\n
         Return:
             TF bool, indicating if a list of hostnames was given"""
 
-        # Check if run with hostnames
+        # Check if hostnames passed through in run()
         if hn_in:
             # for hostname in hn_in:
             self._ips.hostnames_in += self._hn_in_breakdown(hn_in)
             return True
 
-        # if sys.argv, check if has hostnames as arg, or a simple file containing hostnames
+        # Check if hostnames passed through in sys_argv
         elif len(sys_argv) > 1:
             for ndx in range(1, len(sys_argv)):
                 self._ips.hostnames_in += self._hn_in_breakdown(sys_argv[ndx])
@@ -134,11 +118,10 @@ NOTE: Long server lists without TLDs WILL take time\n
 
         return False
 
-    @staticmethod
-    def _splash() -> str:
-        """"""
+    def _splash_screen(self) -> None:
+        """Print welcome screen (w/ verbosity check)"""
 
-        return dedent("""
+        self._verprint(dedent("""
             * * AdHoc Server Name Resolver * *
 
         Identifies IPs for a list of given servers, based on internal TLDs
@@ -147,20 +130,18 @@ NOTE: Long server lists without TLDs WILL take time\n
         Text file will open with lines of IPs for servers, no more than 30 IPs per line
         Note: while full domains are optional, a large list without them WILL take time
         
-        """)
-
-    def _splash_screen(self) -> None:
-        """Print welcome screen"""
-        self._vprint(self._splash())
+        """))
 
     def _gather(self) -> None:
         """Gathers server names from user, split by newline\n
         Runs until blank line submitted
         Defauts to pass if self.hostnames_in is set"""
+
+        # Note: hostnames_in clears on after first run (_ips.reset()
         if not self._ips.hostnames_in:
             prompt: str = None
-            self._vprint("\nEnter servers (Leave blank to start scan)\n")
-            prev_gathered = [ans.given for ans in self._ips.socket_answers]
+            self._verprint("\nEnter servers (Leave blank to start scan)\n")
+            prev_gathered = [prev.given for prev in self._ips.socket_answers]
             while prompt != '':
                 prompt = input('> ').lower().strip()
                 if prompt and prompt not in self._ips.hostnames_in and \
@@ -186,6 +167,7 @@ NOTE: Long server lists without TLDs WILL take time\n
                     name += self._const.local_tld
                 return name, ip
             except (sock_gaierror, sock_herror, UnicodeError):
+                # most errors are attributed to mismatched hostname to tld. Iterate to next one
                 pass
         # Looks like IP was never found. Raise ValueError
         raise ValueError("Socketer unable to resolve given!")
@@ -193,7 +175,8 @@ NOTE: Long server lists without TLDs WILL take time\n
     @staticmethod
     def _tmat(*to_display: any) -> str:
         """returns values in standardized table format, used to stdout results"""
-        # Make sure all to display items are unpacked
+
+        # Make sure all items to display are unpacked
         disp_arr = []
         for item in to_display:
             if isinstance(item, list):
@@ -227,20 +210,20 @@ NOTE: Long server lists without TLDs WILL take time\n
         """
 
         # stdout Header
-        count = len(self._ips.hostnames_in + self._ips.socket_answers)
-        self._vprint('\n\t*', count, 'unique servers identified *\n')
-        self._vprint(self._tmat('#', 'Given', 'FQDN', "IP"))
+        count = len(self._ips.hostnames_in) + len(self._ips.socket_answers)
+        self._verprint('\n\t*', count, 'unique servers identified *\n')
+        self._verprint(self._tmat('#', 'Given', 'FQDN', "IP"))
 
         num = 1
         """Line counter, for all stdout items"""
 
-        # To allow 'adding' hostnames to final report, reference_data stores givens and
+        # Pull stored givens, if any. Allows 'adding' hostnames without explicitly saving table
         for prev in self._ips.socket_answers:
             self._ips.valids.append(prev.ip)
-            self._vprint(self._tmat(num, [p for p in prev]))
+            self._verprint(self._tmat(num, [p for p in prev]))
             num += 1
 
-        # enumerate through hostnames_in. Gather name and IP. Stdout results, if sett.verbose=True
+        # enumerate through hostnames_in. Gather name and IP.
         not_found = 'N / A'  # To display, if unable to resolve
         for given in self._ips.hostnames_in:
             fqdn, ip = not_found, not_found
@@ -250,7 +233,7 @@ NOTE: Long server lists without TLDs WILL take time\n
             except ValueError:
                 self._ips.invalids.append(given)
             finally:
-                self._vprint(self._tmat(num, given, fqdn, ip))
+                self._verprint(self._tmat(num, given, fqdn, ip))
                 self._ips.socket_answers.append(self._ips.sock_ans(given, fqdn, ip))
                 num += 1
 
@@ -277,9 +260,9 @@ NOTE: Long server lists without TLDs WILL take time\n
             rep += self._report_divider('Servers with no found IP')
             rep += '\n'.join(i for i in invalids_remaining)
         else:
-            rep += self._report_divider('IPs found for all Servers')
+            return rep
 
-        return rep
+    # # # Primary engine functions
 
     def _report(self) -> None:
         """Cultivates text report from self.valids and self.invalids"""
@@ -297,8 +280,6 @@ NOTE: Long server lists without TLDs WILL take time\n
         # use webbrowser.open to call default text editor (no OS reliance)
         wb_open(self._const.rep_file)
 
-    # # # Primary engine functions
-
     def _menu_prompt(self) -> None:
         """Sets self.repeating T/F flag"""
 
@@ -312,7 +293,7 @@ NOTE: Long server lists without TLDs WILL take time\n
         while menuing:
             menuing = False
 
-            self._vprint(menu)
+            self._verprint(menu)
             prompt = None
             while prompt not in prompts:
                 prompt = input('> ')
@@ -324,12 +305,10 @@ NOTE: Long server lists without TLDs WILL take time\n
 
                 # Clear list
                 elif prompt == '1':
-                    self._ips.reset_all()
-                    # self._repeating = True
+                    self._ips.reset_all()   # Clear ALL ips data
 
                 elif prompt == '2':
-                    self._ips.reset()
-                    # self._repeating = True
+                    self._ips.reset()       # Keep previous socket answers
 
                 elif prompt == '3':
                     menuing = True
@@ -337,55 +316,36 @@ NOTE: Long server lists without TLDs WILL take time\n
 
     def run(self,
             hostnames_in: List[str] = None,
+            *,
+            verbose=True,
             split_size=30,
             report_joiner=',',
-            file_out=False,
-            return_list=False,
-            verbose=True, ) -> Optional[Tuple[List[List[str]], List[str]]]:
+            # file_out=False,
+            # return_list=False,
+            ) -> Optional[Tuple[List[List[str]], List[str]]]:
         """Display _splash screen, _gather IPs (hostnames_in= or stdin), opt report, return list"""
-
-        auto_pilot = False
-        """Variant of verbosity. Used when given hostnames in sys.argv or run()"""
-        if self._hostnames_given(hostnames_in):
-            pass
-            # silent running. A list given through run or sys.argv overrides verbosity
-            # auto_pilot = True
-        else:
-            self._splash_screen()
 
         # Set running settings
         self._sett.set_settings(split_size=split_size,
                                 report_joiner=report_joiner,
-                                file_out=file_out,
-                                return_list=return_list,
-                                verbose=verbose)
+                                # file_out=file_out,
+                                # return_list=return_list,
+                                verbose=verbose
+                                )
 
-        # if auto_pilot:
-            # self._gather()
-            # self._sort()
-            # return self._ips.valids_split, self._ips.invalids
-        # self._splash_screen()
+        """Variant of verbosity. Used when given hostnames in sys.argv or run()"""
+        if self._process_hostnames_given(hostnames_in):
+            pass
+            # silent running. A list given through run or sys.argv reduces verbosity
+        else:
+            self._splash_screen()
+
         while self._repeating:
             self._gather()
             self._sort()
             self._menu_prompt()
-        if self._sett.return_list:
-            return self._ips.valids_split, self._ips.invalids
 
-        '''if self._sett.verbose:
-            self._splash_screen()
-            while self._repeating:
-                self._gather()
-                self._sort()
-                # self._report()
-                self._menu_prompt()
-
-        else:
-            self._gather()
-            self._sort()
-
-        if self._sett.return_list:
-            return self._ips.valids_split, self._ips.invalids'''
+        return self._ips.valids_split, self._ips.invalids
 
 
 if __name__ == '__main__':
