@@ -1,14 +1,37 @@
+"""
+Report Manager object. Import Manager, and then call report_single or report_csb.
+Each function imports desired reporting sub-module on demand
+"""
+
 from ._report_zengine import _ReporterEngine
+from typing import NamedTuple
 
 
-class _ReporterManagerObj(_ReporterEngine):
+class _Ref(NamedTuple):
+    """
+    Named Tuple containing pointers to active reference objects
+
+    Values:
+        constants: constants data object. (_const)
+        settings: Settings frozen object (_sett)
+        ip_report: storage object for list items (_ips)
+    """
+    constants: None
+    settings: None
+    ip_report: None
+
+
+class ReporterManagerObj(_ReporterEngine):
     """
     Reporter Manager object, to be imported and used to call _reporter_caller helper functions
     """
 
-    def __init__(self, constants, settings, ip_report):
+    def __init__(self, ref_obj: _Ref):
 
-        super().__init__(constants=constants, settings=settings, ip_report=ip_report)
+        super().__init__(constants=ref_obj.constants,
+                         settings=ref_obj.settings,
+                         ip_report=ref_obj.ip_report)
+        # Reference object items are assigned into engine values
 
         self.reporter_single = None
         """Pointer to single file _reporter_caller object. Imports once needed by report_single"""
@@ -18,8 +41,7 @@ class _ReporterManagerObj(_ReporterEngine):
 
     def report_single(self):
         """
-
-        :return:
+        Caller to Single file reporter. Imports module on first call
         """
         # Import and build single _reporter_caller object
         from ._report_single_file import _SingleFile
@@ -31,9 +53,9 @@ class _ReporterManagerObj(_ReporterEngine):
 
     def report_csv(self):
         """
-
-        :return:
+        Caller to CSV reporter. Imports module on first call
         """
+
         # import and build csv _reporter_caller object
         from ._report_csv import _SingleCsv
         if not self.reporter_csv:
@@ -49,19 +71,12 @@ class _RepManFactory:
     Returns a ReporterMangerobject for use by calling funcion
     """
 
-    def __init__(self):
-        self._constants = None
-        self._settings = None
-        self._ip_reports = None
-
-    def _return_repman_obj(self, ):
-        return _ReporterManagerObj(self._constants, self._settings, self._ip_reports)
+    @staticmethod
+    def _return_repman_obj(ref):
+        return ReporterManagerObj(ref)
         pass
 
     def new_reporter_obj(self, constants, settings, ip_report):
         # Pointers to passed data objects
-        self._constants = constants
-        self._settings = settings
-        self._ip_reports = ip_report
-
-        return self._return_repman_obj()
+        ref_to_pass = _Ref(constants=constants, settings=settings, ip_report=ip_report)
+        return self._return_repman_obj(ref_to_pass)

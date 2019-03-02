@@ -1,7 +1,7 @@
 """
-Side loaded helper modules. Import Adhoc
+Side loaded helper modules. Import build, use .new_X_obj on desired object
 """
-from ._report_amanager import _RepManFactory
+from ._report_amanager import _RepManFactory, ReporterManagerObj
 
 
 class _Factory(_RepManFactory):

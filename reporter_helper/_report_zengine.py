@@ -1,7 +1,9 @@
 """
 Base engine for managing reporting helper functions
 """
-from webbrowser import open as wb_open
+from custom_datatypes.threaded_file_handler import TFH
+from tempfile import TemporaryFile
+import reference_data as ref
 
 
 class _ReporterEngine:
@@ -9,15 +11,17 @@ class _ReporterEngine:
     Base engine object for reporting helper functions. On first reporting call, load engine.
     Engine side loads specific reporting functions as called
 
-    initialize with pointers to active constants, settings, ip_report reference data objects
+    To prevent recursive imports, child objects do not import active engine settings. Pass pointers
+    to active reference objects
     """
 
     def __init__(self, constants, settings, ip_report, ):
 
-        self._const = constants
-        self._sett = settings
-        self._ips = ip_report
+        # Passed pointers to reference data objects
+        self._const: ref.Constants = constants
+        self._sett: ref.Settings = settings
+        self._ips: ref.IpReport = ip_report
 
-        self._wb_open = wb_open
-        """Helper network wide pointer to webbroser opener"""
+        self._file_handler = TFH.handle
+        self._temporary_file = TemporaryFile
 
