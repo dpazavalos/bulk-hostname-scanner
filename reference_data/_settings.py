@@ -3,40 +3,32 @@
 from ._z_frozen_obj import FrozenObj
 
 
-class _Settings(FrozenObj):
+class Settings(FrozenObj):
     """Immutable reference data; settings passed from run(). Freezes on set_settings"""
 
-    def __init__(self, ):
-        self.split_size: int = 0
-        """# to split list of valids into, for potential scan limits"""
-        self.report_joiner: str = ''
-        """String character used to separate valids return IPs into"""
-        self.file_out: bool = False
-        """Bool to display results in a txt file or not
-        Also used by prompt to run again (since running again is only used with text_out"""
-        self.return_list: bool = False
-        """Bool to return final results in a nested list\n
-        [0] valids (one list, no chunks), [1] invalids"""
-        self.verbose = False
-        """Enables stdout print"""
-        super().__init__(freeze_post_init=False)
+    verbose: bool
+    """Enables stdout print"""
+    sngl_split_size: int
+    """# to split list of valids into, for potential scan limits"""
+    sngl_report_joiner: str
+    """String character used to separate valids return IPs into"""
+    csv_sort_by_validity: bool
+    """Sort CSV entries by validity"""
 
-    def set_settings(self,
-                     split_size=30,
-                     report_joiner=',',
-                     # file_out=True,
-                     # return_list=False,
-                     verbose=True,
+    def __init__(self, ):
+        super().__init__()
+
+    def set_settings(self, verbose: bool,
+                     sngl_split_size: int,
+                     sngl_report_joiner: str,
+                     csv_sort_by_validity: bool
                      ):
         self.unfreeze_now()
 
-        # text_out reporting attributes
-        self.split_size: int = split_size
-        self.report_joiner: str = report_joiner
-        # Module running attributes
-        # self.file_out: bool = file_out
-        # self.return_list: bool = return_list
         self.verbose = verbose
+        self.sngl_split_size = sngl_split_size
+        self.sngl_report_joiner = sngl_report_joiner
+        self.csv_sort_by_validity = csv_sort_by_validity
 
         self.freeze_now()
 
@@ -46,7 +38,7 @@ class _SettingsFactory:
 
     @staticmethod
     def _return_settings_obj():
-        new_obj = _Settings()
+        new_obj = Settings()
         return new_obj
 
     def new_settings_object(self, ):

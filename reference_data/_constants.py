@@ -4,7 +4,7 @@ from typing import Tuple
 from ._z_frozen_obj import FrozenObj
 
 
-class _Constants(FrozenObj):
+class Constants(FrozenObj):
     """Immutable reference data; contact info, known TLDs, known exclusions"""
 
     def __init__(self, ):
@@ -55,7 +55,7 @@ class _ConstFactory:
 
     @staticmethod
     def _return_const_obj():
-        new_obj = _Constants()
+        new_obj = Constants()
         return new_obj
 
     def new_const_object(self, ):
