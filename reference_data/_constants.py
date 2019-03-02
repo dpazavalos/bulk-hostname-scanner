@@ -22,22 +22,32 @@ class _Constants(FrozenObj):
         """known_exclusions: Common report headers; omit these entries\n
         (allows full col copy from reports)"""
 
-        self.rep_file = 'IpBlocks.txt'
-        """Output file name"""
-
-        self.local_tld: str = ''
+        self.local_tld: str = None
         """localhost's tld, if has one\n
         When not given, DNS will assume similar .domain.TLD . Helpful for figuring IPs,
         but stdout will then only show hostname\n
         Use to check if TLD was assumed, and append to stdout"""
+        # Note: corporate devices usually have a tld, but personal ones typically dont
+
+        # Freeze object via super init
+        super().__init__()
+
+    def find_local_tld(self):
+        """
+        If a hostname is resolved without a TLD, it is often because
+        it's and the running host's TLD are the same. Because this is a conditional factor,
+        and because of extra time needed to figure, call on first instance of an assumed tld.
+        """
+        self.unfreeze_now()
+
+        self.local_tld = ''
         try:
             self.local_tld += reg_search(r"\..*", sock_getfqdn())[0]
         except TypeError:
             # if local hostname has no TLD, keep as ''
             pass
 
-        # Freeze object
-        super().__init__()
+        self.freeze_now()
 
 
 class _ConstFactory:

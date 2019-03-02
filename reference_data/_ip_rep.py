@@ -12,7 +12,7 @@ class IpReport:
         self.invalids: List[str] = []
         """Hostnames with no IP found"""
 
-        self.valids_split: List[List[str]] = []
+        # self.valids_split: List[List[str]] = []
         """IPs of valid Hostnames, split into sublists by self.split_size"""
 
         self.hostnames_in: List[str] = []
@@ -35,7 +35,7 @@ class IpReport:
         """Resets non persistent storage arrays"""
         self.valids.clear()
         self.invalids.clear()
-        self.valids_split.clear()
+        # self.valids_split.clear()
         self.hostnames_in.clear()
 
     def reset_all(self):
