@@ -18,7 +18,8 @@ class Constants(FrozenObj):
 
         self.known_exclusions: Tuple[str] = ('',
                                              'dnshostname', 'netbios', 'servers', 'server',
-                                             'ipaddress', 'ipaddress', 'hostname')
+                                             'ipaddress', 'ipaddress', 'hostname', 'hostnames',
+                                             "Root Domain",)
         """known_exclusions: Common report headers; omit these entries\n
         (allows full col copy from reports)"""
 
