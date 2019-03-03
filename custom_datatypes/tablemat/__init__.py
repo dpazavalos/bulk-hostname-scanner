@@ -1,4 +1,5 @@
 """Simple table formatter"""
+# Todo Classful knowledge, self tracking of returned rows. Factory to enable multiple tables?
 
 
 def tmat(*to_display: any, gap_space=10) -> str:
