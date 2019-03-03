@@ -7,21 +7,20 @@ Once init completes, builtin setattr and delattr will throw a SyntaxError on att
 
 
 class FrozenObj:
-    """These should never change mid-run. Once init'd, _frozen prevents any attr changes"""
+    """These should never change mid-run. Once init'd, _frozen prevents attr changes"""
 
     _frozen = False
 
     def __init__(self, freeze_post_init=True):
 
-        # Enable all class attributes. By default, _freeze enables and locks @end of init
-
+        # Call this super init to freeze. By default, _freeze enables and locks
         if freeze_post_init:
             self._frozen = True
 
     def freeze_now(self):
         self._frozen = True
 
-    def unfreeze_now(self):
+    def unfreeze(self):
         self.__dict__['_frozen'] = False
 
     def __setattr__(self, item, value):

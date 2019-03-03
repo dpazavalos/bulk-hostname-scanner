@@ -1,6 +1,6 @@
 """Data obj and factory for bulk_hostname_resolver running attributes"""
 
-from ._z_frozen_obj import FrozenObj
+from custom_datatypes.frozentemplate import FrozenObj
 
 
 class Settings(FrozenObj):

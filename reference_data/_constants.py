@@ -1,7 +1,7 @@
 from re import search as reg_search
 from socket import getfqdn as sock_getfqdn
 from typing import Tuple
-from ._z_frozen_obj import FrozenObj
+from custom_datatypes.frozentemplate import FrozenObj
 
 
 class Constants(FrozenObj):
