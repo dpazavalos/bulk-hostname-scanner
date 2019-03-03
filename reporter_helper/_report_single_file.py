@@ -1,3 +1,7 @@
+"""
+Single file reporter function
+"""
+
 from ._report_zengine import _ReporterEngine
 from typing import List
 
@@ -54,11 +58,11 @@ class _SingleFile(_ReporterEngine):
         # form valids split chunks into sett.report_joiner joined lines ( 10.10.10.2,10.10.10.3 )
         _valids_formed = [self._sett.sngl_report_joiner.join(valid) for valid in self.valids_split]
         valids_joined = '\r\n\r\n'.join(_valids_formed)
-        temp_report.write(bytes(valids_joined, encoding='ascii'))
+        temp_report.write(bytes(valids_joined, encoding='utf-8'))
 
         # Any non resolved servers
         report_invalids = self._report_inval(self._ips.invalids)
-        temp_report.write(bytes(report_invalids, encoding='ascii'))
+        temp_report.write(bytes(report_invalids, encoding='utf-8'))
 
         # Close connection to temp file. Send string path to threaded handler
         temp_report.close()

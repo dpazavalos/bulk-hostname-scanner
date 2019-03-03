@@ -22,6 +22,6 @@ class _ReporterEngine:
         self._sett: ref.Settings = settings
         self._ips: ref.IpReport = ip_report
 
-        self._file_handler = TFH.handle
+        self._file_handler = TFH().handle
         self._temporary_file = TemporaryFile
 

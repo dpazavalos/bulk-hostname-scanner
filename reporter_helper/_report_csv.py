@@ -1,9 +1,13 @@
+"""
+CSV file reporter function
+"""
+
 from ._report_zengine import _ReporterEngine
 
 
 class _SingleCsv(_ReporterEngine):
     """
-    Used to export findings to csv report
+    Used to export findings to csv report. Allows alphabetical sorting or raw, write as given
     """
 
     temp_report: any  # TemporaryFile pointer. Assigned in report, used in _write_to_csv
