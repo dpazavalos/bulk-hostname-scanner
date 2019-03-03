@@ -12,8 +12,6 @@ class Settings(FrozenObj):
     """# to split list of valids into, for potential scan limits"""
     sngl_report_joiner: str
     """String character used to separate valids return IPs into"""
-    csv_sort_by_validity: bool
-    """Sort CSV entries by validity"""
 
     def __init__(self, ):
         super().__init__()
@@ -21,14 +19,12 @@ class Settings(FrozenObj):
     def set_settings(self, verbose: bool,
                      sngl_split_size: int,
                      sngl_report_joiner: str,
-                     csv_sort_by_validity: bool
                      ):
         self.unfreeze_now()
 
         self.verbose = verbose
         self.sngl_split_size = sngl_split_size
         self.sngl_report_joiner = sngl_report_joiner
-        self.csv_sort_by_validity = csv_sort_by_validity
 
         self.freeze_now()
 
