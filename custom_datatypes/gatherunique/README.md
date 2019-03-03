@@ -12,18 +12,18 @@ pip install gather_unique
 ##  Usage
 
 ```python
-from gatherunique import GatherUnique
-gather = GatherUnique()
+from gatherunique import GatherUnique as gun
+gather = gun()
 head = "Header to display"
 
 # Unique list from stdin, no header
 uniq1 = gather.run()
 
 # Unique list from stdin, with provided blacklist and header
-uniq2 = gather.run(['1', '2', '3', '4', '5'], header=head )
+uniq2 = gather.run(list_in=['1', '2', '3', '4', '5'], header=head )
 
 # Unique list from list_in= against provided blacklist
-uniq3 = gather.run(['1', '2', '3', '4', '5'], list_in=['6', '6', '1', '2'])
+uniq3 = gather.run(list_in=['6', '6', '1', '2'], blacklist0=['1', '2', '3', '4', '5'])
 ```
 
 Note that args are considered blacklists by default. Use 'header=' and 'list_in=' to differentiate
