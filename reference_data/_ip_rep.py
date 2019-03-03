@@ -1,5 +1,4 @@
-from typing import List, Tuple, NamedTuple
-from collections import namedtuple
+from typing import List, NamedTuple
 
 
 class IpReport:
@@ -19,11 +18,11 @@ class IpReport:
         self.hostnames_in: List[str] = []
         """List of given hostnames to resolve"""
 
-        self.socket_answers: List[_SocketAnswer] = []
+        self.socket_answers: List[SocketAnswer] = []
         """Answers to extended socket calls. Used for persistence against cumulative runs\n
         Ultimately, a list of socket_answers"""
 
-        self.sock_ans = _SocketAnswer
+        self.sock_ans = SocketAnswer
 
     def reset(self):
         """Resets non persistent storage arrays"""
@@ -37,7 +36,7 @@ class IpReport:
         self.socket_answers.clear()
 
 
-class _SocketAnswer(NamedTuple):
+class SocketAnswer(NamedTuple):
     """
     Schematic for socket_answer named tuples. Build this and add to socket_answers
     Needs only given to build. FQDN and IP default to IpReport._not_found, must be overwritten
@@ -53,6 +52,11 @@ class _SocketAnswer(NamedTuple):
     given: str
     fqdn: str = IpReport.not_found
     ip: str = IpReport.not_found
+
+    @staticmethod
+    def keys():
+        """Returns preset key order"""          # Consider actual namedtuple for dict usage?
+        return 'Given', 'FQDN', "IP"
 
     def values(self):
         """Returns tuple of given, fqdn, ip"""  # Poor scaling, but of little concern here
