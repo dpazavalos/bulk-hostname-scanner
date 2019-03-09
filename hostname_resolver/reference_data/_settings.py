@@ -1,6 +1,6 @@
 """Data obj and factory for bulk_hostname_resolver running attributes"""
 
-from custom_datatypes.frozentemplate import FrozenObj
+from hostname_resolver.custom_datatypes.frozentemplate import FrozenObj
 
 
 class Settings(FrozenObj):
@@ -20,6 +20,7 @@ class Settings(FrozenObj):
                      sngl_split_size: int,
                      sngl_report_joiner: str,
                      ):
+        """Safely set all settings (manages mutability freezing)"""
         self.unfreeze_now()
 
         self.verbose = verbose
@@ -34,8 +35,10 @@ class _SettingsFactory:
 
     @staticmethod
     def _return_settings_obj():
+        """Return Memory unique Settings object"""
         new_obj = Settings()
         return new_obj
 
     def new_settings_object(self, ):
+        """Build and return a new Settings data object, ready for use"""
         return self._return_settings_obj()

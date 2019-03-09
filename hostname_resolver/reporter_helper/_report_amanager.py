@@ -3,8 +3,8 @@ Report Manager object. Import Manager, and then call _report_single or report_cs
 Each function imports desired reporting sub-module on demand
 """
 
-from ._report_zengine import _ReporterEngine
 from typing import NamedTuple
+from ._report_zengine import _ReporterEngine
 
 
 class _Refer(NamedTuple):
@@ -44,12 +44,12 @@ class ReporterManagerObj(_ReporterEngine):
             'csv_raw': self._report_csv_raw,
             'csv_sort': self._report_csv_sort,
         }
-        """Dictionary containing string keys to call appropriate reporting function. 
+        """Dictionary containing string keys to call appropriate reporting function.
         Call by [index]()
-        
+
         single: Call Single file reporter \n
         csv_raw: Call CSV reporter, writing as they were gathered \n
-        csv_sort: Call CSV reporter, dividing by valid/invalids and alphabetizing 
+        csv_sort: Call CSV reporter, dividing by valid/invalids and alphabetizing
         """
 
     def _report_single(self):
@@ -101,7 +101,6 @@ class _RepManFactory:
     @staticmethod
     def _return_repman_obj(ref):
         return ReporterManagerObj(ref)
-        pass
 
     def new_reporter_obj(self, constants, settings, ip_report):
         # Pointers to passed data objects

@@ -1,9 +1,9 @@
 """
 Base engine for managing reporting helper functions
 """
-from custom_datatypes.threaded_file_handler import TFH
 from tempfile import TemporaryFile
-import reference_data as ref
+from hostname_resolver.custom_datatypes.threaded_file_handler import TFH
+from hostname_resolver import reference_data as ref
 
 
 class _ReporterEngine:
@@ -24,4 +24,3 @@ class _ReporterEngine:
 
         self._file_handler = TFH().handle
         self._temporary_file = TemporaryFile
-

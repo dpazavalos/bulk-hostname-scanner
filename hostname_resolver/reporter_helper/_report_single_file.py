@@ -2,8 +2,8 @@
 Single file reporter function
 """
 
-from ._report_zengine import _ReporterEngine
 from typing import List
+from ._report_zengine import _ReporterEngine
 
 
 class _SingleFile(_ReporterEngine):

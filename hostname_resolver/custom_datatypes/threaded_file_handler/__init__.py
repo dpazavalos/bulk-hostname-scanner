@@ -33,7 +33,6 @@ class TFH:
                 # Being used. Wait
                 pass
             except FileNotFoundError:
-                #
                 file_is_open = False
 
     def handle(self, file_path: str):

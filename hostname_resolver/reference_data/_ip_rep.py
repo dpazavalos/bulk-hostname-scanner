@@ -1,7 +1,15 @@
+"""
+Storage for ip report information. Gathered hostnames, FQDNs, addresses.
+Also includes schematic for namedtuple used to store socket answers
+"""
+
 from typing import List, NamedTuple
 
 
 class IpReport:
+    """
+    Storage for ip report information. Gathered hostnames, FQDNs, addresses
+    """
 
     not_found = 'N / A'
     """Default value if unable to resolve a hostname"""
@@ -68,9 +76,10 @@ class _IpReportFactory:
 
     @staticmethod
     def _return_ip_report_obj():
+        """Return Memory unique IP Reports object"""
         new_obj = IpReport()
         return new_obj
 
     def new_ip_report_obj(self, ):
+        """Build and return a new IP Reports data object, ready for use"""
         return self._return_ip_report_obj()
-

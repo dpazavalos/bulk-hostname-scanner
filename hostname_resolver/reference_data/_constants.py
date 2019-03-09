@@ -1,7 +1,12 @@
+"""
+Immmutable constant refeence data template. To be imported from higher build factory,
+using local _ConstFactory
+"""
+
+from typing import Tuple
 from re import search as reg_search
 from socket import getfqdn as sock_getfqdn
-from typing import Tuple
-from custom_datatypes.frozentemplate import FrozenObj
+from hostname_resolver.custom_datatypes.frozentemplate import FrozenObj
 
 
 class Constants(FrozenObj):
@@ -56,8 +61,10 @@ class _ConstFactory:
 
     @staticmethod
     def _return_const_obj():
+        """Return Memory unique Constants object"""
         new_obj = Constants()
         return new_obj
 
     def new_const_object(self, ):
+        """Build and return a new constants data object, ready for use"""
         return self._return_const_obj()

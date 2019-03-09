@@ -18,9 +18,11 @@ class FrozenObj:
             self._frozen = True
 
     def freeze_now(self):
+        """Freeze attributes"""
         self._frozen = True
 
-    def unfreeze(self):
+    def unfreeze_now(self):
+        """Unfreeze attributes"""
         self.__dict__['_frozen'] = False
 
     def __setattr__(self, item, value):
@@ -30,9 +32,7 @@ class FrozenObj:
         super().__setattr__(item, value)
 
     def __delattr__(self, item):
-            """Pre 3.7 emulation of frozen dataclasses. Soft mutation prevention"""
-            if self._frozen:
-                raise SyntaxError("Consider Constants obj immutable, do not modify!")
-            super().__delattr__(item)
-
-
+        """Pre 3.7 emulation of frozen dataclasses. Soft mutation prevention"""
+        if self._frozen:
+            raise SyntaxError("Consider Constants obj immutable, do not modify!")
+        super().__delattr__(item)
